@@ -209,6 +209,18 @@ document.getElementById('sort-star-btn').onclick = () => {
   saveData();
 };
 
+// チェック状況でソート機能 (未チェックを上へ → チェック状況が同じなら歌手名順)
+document.getElementById('sort-check-btn').onclick = () => {
+  const activeTab = getActiveTab();
+  activeTab.songs.sort((a, b) => {
+    if (a.sungToday === b.sungToday) {
+      return a.artist.localeCompare(b.artist, 'ja'); // チェック状態が同じなら歌手名で整理
+    }
+    return a.sungToday ? 1 : -1; // false（未チェック）を上（先）にする
+  });
+  saveData();
+};
+
 // 歌唱済みチェックのクリア
 document.getElementById('clear-checks-btn').onclick = () => {
   const activeTab = getActiveTab();
