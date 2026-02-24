@@ -1,0 +1,305 @@
+body {
+  font-family: sans-serif;
+  background-color: #f4f7f6;
+  margin: 0;
+  padding: 10px;
+}
+
+.container {
+  max-width: 600px;
+  margin: 0 auto;
+  background: #fff;
+  padding: 15px;
+  border-radius: 8px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.tab-header {
+  margin-bottom: 15px;
+}
+
+.tabs {
+  display: flex;
+  overflow-x: auto;
+  gap: 5px;
+  margin-bottom: 10px;
+}
+
+.tab {
+  padding: 8px 15px;
+  background: #e0e0e0;
+  border-radius: 4px;
+  cursor: grab; /* pointerからgrab（掴むアイコン）に変更 */
+  white-space: nowrap;
+  user-select: none; /* テキスト選択を防ぐ */
+  display: flex;
+  align-items: center; /* テキストと×ボタンの縦位置を揃える */
+}
+
+.tab:active {
+  cursor: grabbing; /* クリック中は掴んでいるアイコンにする */
+}
+
+.tab.active {
+  background: #007bff;
+  color: white;
+}
+
+/* 以下、ドラッグ＆ドロップ用の追加スタイル */
+.tab.dragging {
+  opacity: 0.4;
+  background-color: #ccc;
+}
+
+.tab.drag-over {
+  border-left: 3px solid #007bff;
+  padding-left: 12px;
+}
+
+/* タブ削除（×）ボタンのスタイル */
+.tab-delete-btn {
+  margin-left: 8px;
+  color: #888;
+  font-weight: bold;
+  cursor: pointer;
+  padding: 0 4px;
+  border-radius: 50%;
+}
+
+.tab-delete-btn:hover {
+  color: #dc3545; /* マウスを乗せたら赤色にする */
+  background-color: rgba(0,0,0,0.1);
+}
+
+.input-area {
+  display: flex;
+  flex-wrap: wrap; /* 画面が極端に狭い場合は安全に折り返す */
+  gap: 5px;
+  margin-bottom: 15px;
+}
+
+.input-area input {
+  flex: 1;
+  min-width: 0; /* ★重要：入力欄のデフォルトの最小幅をなくしてはみ出しを防ぐ */
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-sizing: border-box; /* パディングを含めて幅を計算させる */
+}
+
+#add-song-btn {
+  white-space: nowrap; /* 「追加」の文字が不自然に改行されるのを防ぐ */
+}
+
+.controls {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 15px;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 12px;
+}
+
+.btn-primary { background: #28a745; color: white; }
+.btn-secondary { background: #6c757d; color: white; }
+.btn-danger { background: #dc3545; color: white; }
+.btn-small { background: #17a2b8; color: white; font-size: 0.8em; }
+
+.song-list {
+  list-style: none;
+  padding: 0;
+}
+
+.song-item {
+  display: flex;
+  align-items: center;
+  padding: 10px;
+  border-bottom: 1px solid #eee;
+  gap: 10px;
+}
+
+.song-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.song-artist {
+  font-size: 0.8em;
+  color: #666;
+}
+
+.song-title {
+  font-weight: bold;
+}
+
+.status-btn {
+  padding: 5px 10px;
+  border-radius: 20px;
+  font-size: 0.8em;
+}
+
+.status-ok { background: #c3e6cb; color: #155724; }
+.status-ng { background: #f5c6cb; color: #721c24; }
+.status-unknown { background: #e2e3e5; color: #383d41; }
+
+/* 独自の確認ダイアログのスタイル */
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0,0,0,0.5); /* 背景を半透明の黒にして画面を覆う */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  text-align: center;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  max-width: 90%; /* スマホでもはみ出さないようにする */
+}
+
+.modal-subtext {
+  font-size: 0.85em;
+  color: #666;
+  margin-bottom: 20px;
+}
+
+.modal-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+}
+
+.modal-buttons button {
+  padding: 10px 20px;
+  font-weight: bold;
+}
+
+/* OK/NGボタンを横に並べるためのスタイル */
+.status-buttons {
+  display: flex;
+  gap: 5px;
+}
+
+/* 選択されていない（非アクティブな）ボタンのスタイル */
+.status-inactive {
+  background: #e2e3e5;
+  color: #999;
+}
+
+/* 歌唱済み（チェックあり）の曲名に横線を引くスタイル */
+.song-title.sung {
+  text-decoration: line-through; /* 横線を引く */
+  color: #999; /* 少し文字色を薄くして「終わった感」を出す */
+}
+
+/* 曲の削除（×）ボタンのスタイル */
+.song-delete-btn {
+  background: transparent;
+  border: none;
+  color: #aaa;
+  font-size: 1.2em;
+  font-weight: bold;
+  cursor: pointer;
+  padding: 0 5px;
+  margin-left: 5px;
+}
+
+.song-delete-btn:hover {
+  color: #dc3545; /* マウスを乗せたら赤色にする */
+}
+
+/* スマホ画面（画面幅が狭い場合）のレイアウト調整 */
+@media screen and (max-width: 600px) {
+  .autocomplete-wrapper {
+    flex: 0 0 100%; /* 縮むことを絶対に許さず、強制的に100%の幅を取らせる */
+    width: 100%;
+  }
+}
+
+/* 独自の歌手名ドロップダウンリストのスタイル */
+.autocomplete-wrapper {
+  position: relative;
+  width: 100%;      /* 幅を100%にして1段目を完全に独占する */
+  flex: 0 0 100%;   /* 曲名と追加ボタンを強制的に下の行に押し出す */
+}
+
+#artist-input {
+  width: 100%; /* 枠の幅いっぱいに広げる */
+}
+
+.custom-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  max-height: 200px; /* リストが長くなったらスクロールさせる */
+  overflow-y: auto;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  list-style: none;
+  padding: 0;
+  margin: 2px 0 0 0;
+  z-index: 1000; /* 他の要素より手前に表示する */
+}
+
+.custom-dropdown li {
+  padding: 10px;
+  cursor: pointer;
+  border-bottom: 1px solid #eee;
+}
+
+.custom-dropdown li:last-child {
+  border-bottom: none;
+}
+
+.custom-dropdown li:hover {
+  background: #f0f8ff; /* タップ（マウスオン）した時に色を変える */
+}
+
+/* コントロールエリアとソートボタンのスマホ向け折り返し調整 */
+.controls {
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.sort-group {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+/* 星評価（お気に入り）のスタイル */
+.star-rating {
+  display: flex;
+  gap: 4px;
+  margin-top: 5px; /* 曲名との間に少し余白を空ける */
+}
+.star {
+  font-size: 1.5em; /* スマホでタップしやすい少し大きめのサイズ */
+  cursor: pointer;
+  color: #ccc; /* 未選択の星はグレー */
+  user-select: none;
+}
+.star.active {
+  color: #ffc107; /* 選択済みの星はゴールド */
+}
+
+/* チェックボックスの見た目とタップ判定を大きくする */
+.song-item input[type="checkbox"] {
+  width: 24px;  /* 幅を大きくする（標準は13px程度） */
+  height: 24px; /* 高さを大きくする */
+  cursor: pointer;
+  margin-right: 8px; /* 右側のテキスト（曲名など）との間隔を少し開ける */
+  flex-shrink: 0; /* 画面が狭くてもチェックボックスが潰れないようにする */
+}
