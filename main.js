@@ -131,7 +131,7 @@ function render() {
       }
       infoDiv.appendChild(starDiv);
 
-      // OK / NG 選択ボタン
+      // OK / NG / 音域NG 選択ボタン
       const statusContainer = document.createElement('div');
       statusContainer.className = 'status-buttons';
 
@@ -151,8 +151,18 @@ function render() {
         saveData();
       };
 
+      // 「音域NG」ボタン
+      const rangeNgBtn = document.createElement('button');
+      rangeNgBtn.textContent = '音域NG';
+      rangeNgBtn.className = `status-btn ${song.status === '音域NG' ? 'status-range-ng' : 'status-inactive'}`;
+      rangeNgBtn.onclick = () => {
+        song.status = song.status === '音域NG' ? '未確認' : '音域NG'; 
+        saveData();
+      };
+
       statusContainer.appendChild(okBtn);
       statusContainer.appendChild(ngBtn);
+      statusContainer.appendChild(rangeNgBtn); // 「音域NG」を一番右に追加
 
       // 曲の削除（×）ボタン
       const deleteSongBtn = document.createElement('button');

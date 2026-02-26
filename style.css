@@ -303,3 +303,9 @@ button {
   margin-right: 8px; /* 右側のテキスト（曲名など）との間隔を少し開ける */
   flex-shrink: 0; /* 画面が狭くてもチェックボックスが潰れないようにする */
 }
+
+/* 音域NGボタンのスタイル（選択時） */
+.status-range-ng {
+  background: #e2d9f3; /* 薄い紫の背景 */
+  color: #4a148c;     /* 濃い紫の文字 */
+}
