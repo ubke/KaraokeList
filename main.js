@@ -1,3 +1,33 @@
+// 鍵盤画像に準拠した音域リストと色の定義
+const pitchOptions = [
+  { label: "未設定", value: "", colorClass: "" },
+  // Gray (low)
+  ...["lowE", "lowF", "lowF#", "lowG", "lowG#"].map(v => ({ label: v, value: v, colorClass: "pitch-gray" })),
+  // Green (mid1 A~E)
+  ...["mid1A", "mid1A#", "mid1B", "mid1C", "mid1C#", "mid1D", "mid1D#", "mid1E"].map(v => ({ label: v, value: v, colorClass: "pitch-green" })),
+  // Light Green (mid1 F~G, mid2 A~E)
+  ...["mid1F", "mid1F#", "mid1G", "mid1G#", "mid2A", "mid2A#", "mid2B", "mid2C", "mid2C#", "mid2D", "mid2D#", "mid2E"].map(v => ({ label: v, value: v, colorClass: "pitch-lgreen" })),
+  // Yellow (mid2 F~G#)
+  ...["mid2F", "mid2F#", "mid2G", "mid2G#"].map(v => ({ label: v, value: v, colorClass: "pitch-yellow" })),
+  // Orange (hi A~B)
+  ...["hiA", "hiA#", "hiB"].map(v => ({ label: v, value: v, colorClass: "pitch-orange" })),
+  // Red (hi C~E)
+  ...["hiC", "hiC#", "hiD", "hiD#", "hiE"].map(v => ({ label: v, value: v, colorClass: "pitch-red" })),
+  // Purple (hi F~, hihi)
+  ...["hiF", "hiF#", "hiG", "hiG#", "hihiA", "hihiA#", "hihiB"].map(v => ({ label: v, value: v, colorClass: "pitch-purple" }))
+];
+
+// ピアノ鍵盤のレイアウト構造（w=白鍵, b=黒鍵）
+const keyboardLayout = [
+  { w: "lowE" }, { w: "lowF", b: "lowF#" }, { w: "lowG", b: "lowG#" },
+  { w: "mid1A", b: "mid1A#" }, { w: "mid1B" }, { w: "mid1C", b: "mid1C#" }, { w: "mid1D", b: "mid1D#" }, { w: "mid1E" },
+  { w: "mid1F", b: "mid1F#" }, { w: "mid1G", b: "mid1G#" }, { w: "mid2A", b: "mid2A#" }, { w: "mid2B" }, { w: "mid2C", b: "mid2C#" }, { w: "mid2D", b: "mid2D#" }, { w: "mid2E" },
+  { w: "mid2F", b: "mid2F#" }, { w: "mid2G", b: "mid2G#" },
+  { w: "hiA", b: "hiA#" }, { w: "hiB" },
+  { w: "hiC", b: "hiC#" }, { w: "hiD", b: "hiD#" }, { w: "hiE" },
+  { w: "hiF", b: "hiF#" }, { w: "hiG", b: "hiG#" }, { w: "hihiA", b: "hihiA#" }, { w: "hihiB" }
+];
+
 // アプリの状態を管理するデータ構造
 let appData = JSON.parse(localStorage.getItem('karaokeApp')) || {
   activeTabId: 1,
@@ -93,7 +123,15 @@ function render() {
   songList.innerHTML = '';
   const activeTab = getActiveTab();
   if (activeTab) {
+    // 入力欄の文字（検索ワード）を取得（小文字にして比較しやすくする）
+    const filterText = artistInput.value.trim().toLowerCase();
+
     activeTab.songs.forEach((song, index) => {
+      // 検索ワードが入力されており、かつ歌手名に含まれていなければスキップ（描画しない）
+      if (filterText && !song.artist.toLowerCase().includes(filterText)) {
+        return;
+      }
+
       const li = document.createElement('li');
       li.className = 'song-item';
 
@@ -170,15 +208,158 @@ function render() {
       deleteSongBtn.className = 'song-delete-btn';
       deleteSongBtn.onclick = () => {
         if (confirm(`「${song.title}」をリストから削除しますか？`)) {
-          activeTab.songs.splice(index, 1); // 配列から該当の曲を削除
-          saveData();
+          // 絞り込み時でも確実に正しい曲を消せるように、本当の順番を探してから削除する
+          const originalIndex = activeTab.songs.indexOf(song);
+          if (originalIndex !== -1) {
+            activeTab.songs.splice(originalIndex, 1);
+            saveData();
+          }
         }
       };
 
-      li.appendChild(checkbox);
-      li.appendChild(infoDiv);
-      li.appendChild(statusContainer);
-      li.appendChild(deleteSongBtn); // ×ボタンを一番右に追加
+      // 1段目の要素をまとめる専用の枠を作る
+      const mainRow = document.createElement('div');
+      mainRow.className = 'song-main-row';
+      
+      mainRow.appendChild(checkbox);
+      mainRow.appendChild(infoDiv);
+      mainRow.appendChild(statusContainer);
+      mainRow.appendChild(deleteSongBtn); 
+      
+      li.appendChild(mainRow); // まとめた1段目をリストに追加
+
+      // ▼▼▼ 音域ブロック（設定がONの時だけ表示） ▼▼▼
+      if (appData.settings && appData.settings.showVocalRange) {
+        const vocalContainer = document.createElement('div');
+        vocalContainer.className = 'vocal-range-container-new'; // 新デザイン用のクラス
+
+        // ① 上段：テキスト表示と検索ボタン
+        const headerRow = document.createElement('div');
+        headerRow.className = 'vocal-header';
+
+        const textInfo = document.createElement('div');
+        textInfo.className = 'vocal-text';
+        textInfo.innerHTML = `地低: <span class="vocal-val">${song.lowPitch || '未設定'}</span> 〜 地高: <span class="vocal-val">${song.highPitch || '未設定'}</span>`;
+
+        const searchBtn = document.createElement('button');
+        searchBtn.textContent = '🔍 音域検索';
+        searchBtn.className = 'vocal-search-btn';
+        searchBtn.onclick = () => {
+          const query = encodeURIComponent(`${song.artist} ${song.title} 音域`);
+          window.open(`https://www.google.com/search?q=${query}`, '_blank');
+        };
+
+        headerRow.appendChild(textInfo);
+        headerRow.appendChild(searchBtn);
+        vocalContainer.appendChild(headerRow);
+
+        // ② 下段：ピアノ鍵盤UI
+        const kbdWrapper = document.createElement('div');
+        kbdWrapper.className = 'keyboard-wrapper';
+
+        // スクロール位置を常に記憶しておく
+        kbdWrapper.addEventListener('scroll', () => {
+          song.kbdScroll = kbdWrapper.scrollLeft;
+        });
+
+        const kbd = document.createElement('div');
+        kbd.className = 'piano-keyboard';
+
+        const lowIdx = pitchOptions.findIndex(p => p.value === song.lowPitch);
+        const highIdx = pitchOptions.findIndex(p => p.value === song.highPitch);
+
+        // 鍵盤をタップした時の賢い判定ロジック
+        const handleKeyClick = (val) => {
+          const clickedIdx = pitchOptions.findIndex(p => p.value === val);
+          if (clickedIdx <= 0) return;
+
+          // 選択の解除ロジック 
+          if (song.lowPitch === val && song.highPitch === val) {
+            // ① 1音のみ選択時にタップした場合は、完全クリア
+            song.lowPitch = '';
+            song.highPitch = '';
+            saveData();
+            return;
+          } else if (song.lowPitch === val) {
+            // ② 範囲選択時に地低（左端）をタップした場合は、地低を解除（地高の1音選択に戻す）
+            song.lowPitch = song.highPitch;
+            saveData();
+            return;
+          } else if (song.highPitch === val) {
+            // ③ 範囲選択時に地高（右端）をタップした場合は、地高を解除（地低の1音選択に戻す）
+            song.highPitch = song.lowPitch;
+            saveData();
+            return;
+          }
+
+          if (lowIdx <= 0 && highIdx <= 0) {
+            song.lowPitch = val; song.highPitch = val; // 初回は両方セット
+          } else if (lowIdx > 0 && highIdx <= 0) {
+            if (clickedIdx < lowIdx) { song.lowPitch = val; song.highPitch = pitchOptions[lowIdx].value; }
+            else { song.highPitch = val; }
+          } else {
+            // 既に範囲がある場合、タップした位置が近い方を更新する
+            if (clickedIdx < lowIdx) song.lowPitch = val;
+            else if (clickedIdx > highIdx) song.highPitch = val;
+            else {
+              if ((clickedIdx - lowIdx) < (highIdx - clickedIdx)) song.lowPitch = val;
+              else song.highPitch = val;
+            }
+          }
+          saveData();
+        };
+
+        // 鍵盤を描画して色を塗る
+        keyboardLayout.forEach(group => {
+          const wKey = document.createElement('div');
+          wKey.className = 'key-white';
+          const wIdx = pitchOptions.findIndex(p => p.value === group.w);
+          
+          // 白鍵に音名（lowEなど）を縦書きで表示する
+          const wLabel = document.createElement('span');
+          wLabel.className = 'key-label';
+          // 1文字ずつ改行タグ(<br>)で繋いで縦書きにする（スマホで絶対に崩れない確実な方法）
+          wLabel.innerHTML = group.w.split('').join('<br>');
+          wKey.appendChild(wLabel);
+
+          // 選択範囲に含まれていれば色を塗る
+          if (wIdx > 0 && ((lowIdx > 0 && highIdx > 0 && wIdx >= lowIdx && wIdx <= highIdx) || (wIdx === lowIdx || wIdx === highIdx))) {
+            if (pitchOptions[wIdx].colorClass) wKey.classList.add(pitchOptions[wIdx].colorClass);
+          }
+          wKey.onclick = () => handleKeyClick(group.w);
+
+          // 黒鍵（#）がある場合
+          if (group.b) {
+            const bKey = document.createElement('div');
+            bKey.className = 'key-black';
+            const bIdx = pitchOptions.findIndex(p => p.value === group.b);
+            
+            // 選択範囲に含まれていれば色を塗る
+            if (bIdx > 0 && ((lowIdx > 0 && highIdx > 0 && bIdx >= lowIdx && bIdx <= highIdx) || (bIdx === lowIdx || bIdx === highIdx))) {
+              if (pitchOptions[bIdx].colorClass) bKey.classList.add(pitchOptions[bIdx].colorClass);
+            }
+            bKey.onclick = (e) => {
+              e.stopPropagation(); // 白鍵のタップ判定をブロック
+              handleKeyClick(group.b);
+            };
+            wKey.appendChild(bKey);
+          }
+          kbd.appendChild(wKey);
+        });
+
+        kbdWrapper.appendChild(kbd);
+        vocalContainer.appendChild(kbdWrapper);
+        li.appendChild(vocalContainer); 
+
+        // 描画された直後にスクロール位置を復元する
+        requestAnimationFrame(() => {
+          if (song.kbdScroll !== undefined) {
+            kbdWrapper.scrollLeft = song.kbdScroll;
+          }
+        });
+      }
+      // ▲▲▲ 音域ブロックここまで ▲▲▲
+
       songList.appendChild(li);
     });
   }
@@ -308,6 +489,7 @@ function updateCustomArtistList() {
     li.onclick = () => {
       artistInput.value = artist; // 入力欄に歌手名をセット
       customList.style.display = 'none'; // リストを閉じる
+      render(); // 選んだ歌手名で即座に下のリストを絞り込む
     };
     customList.appendChild(li);
   });
@@ -343,6 +525,9 @@ artistInput.addEventListener('input', () => {
     }
   });
   customList.style.display = hasVisible ? 'block' : 'none';
+
+  // 入力するたびに下の曲リストもリアルタイムに絞り込む
+  render();
 });
 
 // 3. 画面の他の場所をタップしたらリストを閉じる
@@ -365,4 +550,59 @@ new Sortable(document.getElementById('tabs-container'), {
     appData.tabs.splice(evt.newIndex, 0, movedTab);
     saveData();
   }
+});
+
+// --- 音域設定機能 ---
+if (!appData.settings) appData.settings = { showVocalRange: false }; // 初期設定
+
+const settingsModal = document.getElementById('settings-modal');
+document.getElementById('settings-btn').onclick = () => {
+  document.getElementById('toggle-vocal-range').checked = appData.settings.showVocalRange;
+  settingsModal.style.display = 'flex';
+};
+document.getElementById('settings-close').onclick = () => {
+  settingsModal.style.display = 'none';
+};
+document.getElementById('toggle-vocal-range').onchange = (e) => {
+  appData.settings.showVocalRange = e.target.checked;
+  saveData(); // 設定を変えたら保存して画面を再描画
+};
+
+// 画面のどこかをタップした時に、開いている独自の音域ドロップダウンをすべて閉じる
+document.addEventListener('click', () => {
+  document.querySelectorAll('.custom-select-dropdown').forEach(d => {
+    d.style.display = 'none';
+  });
+});
+
+// ☆彡
+const APP_PASSWORD = "Ok9945"; 
+
+const passwordScreen = document.getElementById('password-screen');
+const passwordInput = document.getElementById('app-password-input');
+const passwordSubmitBtn = document.getElementById('password-submit-btn');
+const passwordError = document.getElementById('password-error');
+
+// すでにパスワード入力済み（認証成功）のブラウザかどうかをチェック
+if (localStorage.getItem('karaokeAppUnlocked') === 'true') {
+  passwordScreen.style.display = 'none'; // 認証済みならパスワード画面を消して即座にアプリを表示
+}
+
+// ログインボタンを押した時の処理
+const attemptLogin = () => {
+  if (passwordInput.value === APP_PASSWORD) {
+    // パスワード正解：認証状態をブラウザに記憶させ、画面を消す
+    localStorage.setItem('karaokeAppUnlocked', 'true');
+    passwordScreen.style.display = 'none';
+  } else {
+    // パスワード不正解：エラーメッセージを表示
+    passwordError.style.display = 'block';
+  }
+};
+
+passwordSubmitBtn.onclick = attemptLogin;
+
+// スマホのキーボードの「完了(Enter)」を押した時にもログインできるようにする
+passwordInput.addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') attemptLogin();
 });

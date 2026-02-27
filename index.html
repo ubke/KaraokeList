@@ -3,22 +3,38 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>カラオケ管理アプリ</title>
+  <title>カラオケList</title>
+
+  <link rel="icon" href="icon.png">
   <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
+  <div id="password-screen" class="password-overlay">
+    <div class="password-box">
+      <h2>カラオケList</h2>
+      <p style="font-size: 0.9em; color: #666;">ご利用にはパスワードが必要です。</p>
+      <input type="password" id="app-password-input" placeholder="パスワードを入力">
+      <button id="password-submit-btn" class="btn-primary">ログイン</button>
+      <p id="password-error" style="color: #dc3545; display: none; font-size: 0.85em; margin-top: 10px;">パスワードが間違っています。</p>
+    </div>
+  </div>
+
   <div class="container">
-    <h2>カラオケレパートリー</h2>
+    <h2>カラオケList</h2>
     
     <div class="tab-header">
       <div id="tabs-container" class="tabs"></div>
-      <button id="add-tab-btn" class="btn-small">＋ 新規タブ</button>
+      <div style="display: flex; justify-content: space-between;">
+        <button id="add-tab-btn" class="btn-small">＋ 新規タブ</button>
+        <button id="settings-btn" class="btn-secondary">⚙️ 設定</button>
+      </div>
     </div>
 
     <div class="input-area">
       
       <div class="autocomplete-wrapper">
-        <input type="text" id="artist-input" placeholder="歌手名" autocomplete="off">
+        <input type="text" id="artist-input" placeholder="歌手名（アーティスト名によるリストの絞り込みも可能）">
         <ul id="custom-artist-list" class="custom-dropdown" style="display: none;"></ul>
       </div>
 
@@ -59,6 +75,19 @@
       </div>
     </div>
 
+  </div>
+
+  <div id="settings-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-content">
+      <h3 style="margin-top: 0;">設定</h3>
+      <label style="display: flex; align-items: center; gap: 10px; margin: 20px 0; font-weight: bold; cursor: pointer;">
+        <input type="checkbox" id="toggle-vocal-range" style="width: 24px; height: 24px;">
+        音域機能（地低・地高・音域検索ボタン）を表示する
+      </label>
+      <div class="modal-buttons">
+        <button id="settings-close" class="btn-primary">閉じる</button>
+      </div>
+    </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
