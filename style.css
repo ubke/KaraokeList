@@ -693,3 +693,22 @@ button[class*="btn-"]:active {
   transform: scale(0.93); /* グッと奥に沈み込むように少し縮小する */
   filter: brightness(0.85); /* 影が落ちたように少し色を濃くする */
 }
+
+/* 地低・地高のテキストバッジ（囲み）のスタイル */
+.vocal-pitch-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-weight: bold;
+  color: #fff; /* 基本は白文字 */
+  margin-left: 5px;
+  margin-right: 5px;
+  cursor: pointer; /* ポップアップで編集する場合 */
+}
+
+/* 視認性の悪い色に対する上書き定義（灰色背景） */
+/* プロのデザイナーなら見えなくなる灰色を文字色にはしないので、
+   灰色背景に黒文字にすることで視認性を確保する */
+.vocal-pitch-badge.pitch-gray {
+  color: #000; /* 黒文字 */
+}

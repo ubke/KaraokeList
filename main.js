@@ -256,8 +256,16 @@ function render() {
 
         const textInfo = document.createElement('div');
         textInfo.className = 'vocal-text';
-        textInfo.innerHTML = `地低: <span class="vocal-val">${song.lowPitch || '未設定'}</span> 〜 地高: <span class="vocal-val">${song.highPitch || '未設定'}</span>`;
-
+        
+        // 音域に合わせて色（クラス）を計算して付与する
+        const lowPitchObj = pitchOptions.find(p => p.value === song.lowPitch);
+        const lowPitchClass = lowPitchObj ? lowPitchObj.colorClass : 'pitch-gray'; // 未設定は灰色
+        
+        const highPitchObj = pitchOptions.find(p => p.value === song.highPitch);
+        const highPitchClass = highPitchObj ? highPitchObj.colorClass : 'pitch-gray'; // 未設定は灰色
+        
+        textInfo.innerHTML = `地低: <span class="vocal-val vocal-pitch-badge ${lowPitchClass}">${song.lowPitch || '未設定'}</span> 〜 地高: <span class="vocal-val vocal-pitch-badge ${highPitchClass}">${song.highPitch || '未設定'}</span>`;
+        
         const searchBtn = document.createElement('button');
         searchBtn.textContent = '🔍 音域検索';
         searchBtn.className = 'vocal-search-btn';
