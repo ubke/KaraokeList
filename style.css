@@ -3,6 +3,7 @@ body {
   background-color: #f4f7f6;
   margin: 0;
   padding: 10px;
+  touch-action: manipulation; /* ダブルタップによるズームを防止 */
 }
 
 .container {
@@ -561,14 +562,22 @@ button {
   border-right: none;
 }
 
+/* 黒鍵を配置するための透明な隙間 */
+.black-key-wrapper {
+  position: relative;
+  width: 0;
+  height: 100%;
+  z-index: 10; /* 白鍵よりも確実に手前に配置してタップを優先させる */
+}
+
+/* 黒鍵本体のスタイルを修正 */
 .key-black {
   position: absolute;
   top: 0;
-  right: -40%; /* 白鍵の境目に正確に配置する */
-  width: 80%;
+  left: -9px; /* 幅の半分だけ左にずらして、隙間のど真ん中にピタッと配置する */
+  width: 18px; /* 黒鍵の幅を固定して、タップ判定を確実に全体に持たせる */
   height: 55%;
   background: #222;
-  z-index: 2;
   border-radius: 0 0 3px 3px;
   cursor: pointer;
   box-shadow: 1px 1px 2px rgba(0,0,0,0.3);
@@ -625,4 +634,62 @@ button {
   padding: 12px;
   font-size: 1.1em;
   font-weight: bold;
+}
+
+/* iPhoneなどのスマホで入力時に自動ズームされるのを防ぐ（16px以上に固定） */
+input[type="text"],
+input[type="password"] {
+  font-size: 16px !important;
+}
+
+/* ついでに、スマホ画面で入力欄が少し大きくなってタップしやすくなるように調整 */
+@media screen and (max-width: 600px) {
+  .input-area input {
+    padding: 12px 8px; /* 上下の余白を少し広げて押しやすくする */
+  }
+}
+
+/* 音域の文字（地低・地高）が変なところで改行されるのを絶対に防ぐ */
+.vocal-header {
+  flex-wrap: nowrap !important;
+  gap: 5px;
+}
+.vocal-text {
+  white-space: nowrap !important; /* 文字の途中での改行を禁止 */
+  gap: 3px !important; /* 要素の隙間を詰める */
+}
+
+/* スマホの狭い画面の時だけ、文字や余白を小さくして綺麗に1行に収める */
+@media screen and (max-width: 600px) {
+  .vocal-text {
+    font-size: 0.7em !important; /* 文字を少し小さめに */
+  }
+  .vocal-val {
+    padding: 2px 4px !important; /* 白い枠の余白を詰める */
+    min-width: 35px !important; /* 枠の最小幅を少し小さく */
+  }
+  .vocal-search-btn {
+    font-size: 0.75em !important; /* 検索ボタンの文字も少し小さめに */
+    padding: 4px 6px !important;
+    white-space: nowrap !important;
+  }
+}
+
+/* プロ仕様のボタンクリックエフェクト（心地よい押し込み感） */
+button[class*="btn-"] {
+  /* アニメーションを滑らかにする魔法の設定（0.1秒でサッと反応させる） */
+  transition: transform 0.1s cubic-bezier(0.4, 0, 0.2, 1), filter 0.1s ease;
+}
+
+/* PCなどでマウスを乗せた時（ほんのり明るく発光させて、押せることをアピール） */
+@media (hover: hover) {
+  button[class*="btn-"]:hover {
+    filter: brightness(1.1); 
+  }
+}
+
+/* スマホやPCでタップして「押し込んだ瞬間」の物理的なフィードバック */
+button[class*="btn-"]:active {
+  transform: scale(0.93); /* グッと奥に沈み込むように少し縮小する */
+  filter: brightness(0.85); /* 影が落ちたように少し色を濃くする */
 }

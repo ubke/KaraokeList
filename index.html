@@ -1,18 +1,29 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-NXWYT5YV2S"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-NXWYT5YV2S');
+  </script>
+
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>カラオケList</title>
+  <title>ウタログ</title>
 
   <link rel="icon" href="icon.png">
   <link rel="stylesheet" href="style.css">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
 </head>
 
 <body>
   <div id="password-screen" class="password-overlay">
     <div class="password-box">
-      <h2>カラオケList</h2>
+      <h2>ウタログ</h2>
       <p style="font-size: 0.9em; color: #666;">ご利用にはパスワードが必要です。</p>
       <input type="password" id="app-password-input" placeholder="パスワードを入力">
       <button id="password-submit-btn" class="btn-primary">ログイン</button>
@@ -20,21 +31,39 @@
     </div>
   </div>
 
+  <div id="copy-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-content">
+      <h3 style="margin-top: 0; margin-bottom: 15px;">送信先のタブを選択</h3>
+      <div id="copy-tab-list" style="max-height: 200px; overflow-y: auto; text-align: left; margin-bottom: 20px; border: 1px solid #ccc; padding: 10px; border-radius: 4px; display: flex; flex-direction: column; gap: 12px;"></div>
+      <div class="modal-buttons">
+        <button id="copy-modal-ok" class="btn-primary">送信する</button>
+        <button id="copy-modal-cancel" class="btn-secondary">キャンセル</button>
+      </div>
+    </div>
+  </div>
+
   <div class="container">
-    <h2>カラオケList</h2>
+    <div style="text-align: left; margin-bottom: 15px;">
+      <h1 class="app-logo">ウタログ</h1>
+    </div>
     
     <div class="tab-header">
       <div id="tabs-container" class="tabs"></div>
-      <div style="display: flex; justify-content: space-between;">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
         <button id="add-tab-btn" class="btn-small">＋ 新規タブ</button>
-        <button id="settings-btn" class="btn-secondary">⚙️ 設定</button>
-      </div>
+        
+        <div style="display: flex; gap: 8px;">
+          <button id="bulk-copy-btn" class="btn-secondary" style="font-weight: bold; font-size: 1.1em; padding: 4px 15px;">＋</button>
+          <button id="bulk-delete-btn" class="btn-secondary" style="font-size: 1.1em; padding: 4px 15px;">🗑️</button>
+          <button id="settings-btn" class="btn-secondary">⚙️ 設定</button>
+        </div>
+        </div>
     </div>
 
     <div class="input-area">
       
       <div class="autocomplete-wrapper">
-        <input type="text" id="artist-input" placeholder="歌手名（アーティスト名によるリストの絞り込みも可能）">
+        <input type="text" id="artist-input" placeholder="歌手名・アニメなど（表示リストの絞り込みも可能）">
         <ul id="custom-artist-list" class="custom-dropdown" style="display: none;"></ul>
       </div>
 
@@ -43,38 +72,32 @@
     </div>
 
     <div class="controls">
-      <div class="sort-group">
-        <button id="sort-btn" class="btn-secondary">歌手名でソート</button>
-        <button id="sort-star-btn" class="btn-secondary">お気に入りでソート</button>
-        <button id="sort-check-btn" class="btn-secondary">チェックでソート</button>
+      <div class="sort-group" style="display: flex; align-items: center; gap: 6px;">
+        <span style="font-weight: bold; font-size: 0.9em; color: #555;">ソート：</span>
+        <button id="sort-btn" class="btn-secondary">歌手名など</button>
+        <button id="sort-star-btn" class="btn-secondary">お気に入り</button>
+        <button id="sort-check-btn" class="btn-secondary">チェック</button>
       </div>
-      <button id="clear-checks-btn" class="btn-danger">チェッククリア</button>
+
+      <div style="display: flex; gap: 8px; margin-left: auto;">
+        <button id="all-check-btn" class="btn-primary">オールチェック</button>
+        <button id="clear-checks-btn" class="btn-danger">チェッククリア</button>
+      </div>
     </div>
 
     <ul id="song-list" class="song-list"></ul>
-    
-    <div id="custom-confirm" class="modal-overlay" style="display: none;">
-      <div class="modal-content">
-        <p>現在のタブの内容をコピーしますか？</p>
-        <p class="modal-subtext">（「いいえ」を押すと空のタブが作成されます）</p>
-        <div class="modal-buttons">
-          <button id="modal-yes" class="btn-primary">はい（コピーする）</button>
-          <button id="modal-no" class="btn-secondary">いいえ（空のタブ）</button>
-        </div>
+
+  </div>
+
+  <div id="custom-modal" class="modal-overlay" style="display: none; z-index: 100000;">
+    <div class="modal-content" style="text-align: center; width: 90%; max-width: 320px;">
+      <p id="custom-modal-message" style="margin-top: 0; margin-bottom: 20px; font-weight: bold; white-space: pre-wrap; line-height: 1.4;"></p>
+      <input type="text" id="custom-modal-input" style="width: 100%; padding: 10px; margin-bottom: 20px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; box-sizing: border-box; display: none;">
+      <div class="modal-buttons" style="display: flex; justify-content: center; gap: 15px;">
+        <button id="custom-modal-ok" class="btn-primary" style="min-width: 80px; padding: 10px 20px;">OK</button>
+        <button id="custom-modal-cancel" class="btn-secondary" style="min-width: 80px; padding: 10px 20px; display: none;">キャンセル</button>
       </div>
     </div>
-
-    <div id="rename-modal" class="modal-overlay" style="display: none;">
-      <div class="modal-content">
-        <p>新しいタブ名を入力してください:</p>
-        <input type="text" id="rename-input" style="width: 100%; margin-bottom: 20px; padding: 10px; font-size: 1em; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px;">
-        <div class="modal-buttons">
-          <button id="rename-ok" class="btn-primary">OK</button>
-          <button id="rename-cancel" class="btn-secondary">キャンセル</button>
-        </div>
-      </div>
-    </div>
-
   </div>
 
   <div id="settings-modal" class="modal-overlay" style="display: none;">
@@ -83,6 +106,14 @@
       <label style="display: flex; align-items: center; gap: 10px; margin: 20px 0; font-weight: bold; cursor: pointer;">
         <input type="checkbox" id="toggle-vocal-range" style="width: 24px; height: 24px;">
         音域機能（地低・地高・音域検索ボタン）を表示する
+      </label>
+      <label style="display: flex; align-items: center; gap: 10px; margin: 20px 0; font-weight: bold; cursor: pointer;">
+        <input type="checkbox" id="toggle-sync-rating" style="width: 24px; height: 24px;">
+        曲のお気に入り度を他のタブ内の同じ曲にも反映させる
+      </label>
+      <label style="display: flex; align-items: center; gap: 10px; margin: 20px 0; font-weight: bold; cursor: pointer;">
+        <input type="checkbox" id="toggle-sync-status" style="width: 24px; height: 24px;">
+        曲の「OK」「NG」「音域NG」を他のタブ内の同じ曲にも反映させる
       </label>
       <div class="modal-buttons">
         <button id="settings-close" class="btn-primary">閉じる</button>

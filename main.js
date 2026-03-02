@@ -64,33 +64,14 @@ function render() {
     // タブ名のテキスト（ダブルクリックで変更）
     const nameSpan = document.createElement('span');
     nameSpan.textContent = tab.name;
-    nameSpan.ondblclick = (e) => {
+    nameSpan.ondblclick = async (e) => {
       e.stopPropagation();
-      
-      const modal = document.getElementById('rename-modal');
-      const input = document.getElementById('rename-input');
-      
-      // 現在のタブ名をはじめから入力欄に入れておく
-      input.value = tab.name;
-      // 独自の画面を表示する
-      modal.style.display = 'flex';
-      // 自動的に入力欄にフォーカスを当てる（キーボードを出しやすくする）
-      input.focus();
-
-      // 「OK」ボタンが押された時の処理
-      document.getElementById('rename-ok').onclick = () => {
-        const newName = input.value;
-        if (newName && newName.trim() !== '') {
-          tab.name = newName.trim();
-          saveData();
-        }
-        modal.style.display = 'none'; // 画面を閉じる
-      };
-
-      // 「キャンセル」ボタンが押された時の処理
-      document.getElementById('rename-cancel').onclick = () => {
-        modal.style.display = 'none'; // 何もせずに画面を閉じる
-      };
+      const newName = await customPrompt('新しいタブ名を入力してください:', tab.name);
+      if (newName && newName.trim() !== '') {
+        tab.name = newName.trim();
+        saveData();
+        render();
+      }
     };
     tabEl.appendChild(nameSpan);
 
@@ -98,14 +79,15 @@ function render() {
     const deleteBtn = document.createElement('span');
     deleteBtn.textContent = '×';
     deleteBtn.className = 'tab-delete-btn';
-    deleteBtn.onclick = (e) => {
+    deleteBtn.onclick = async (e) => {
       e.stopPropagation();
-      if (confirm(`タブ「${tab.name}」を削除しますか？\n※中の曲データも消えます`)) {
+      if (await customConfirm(`タブ「${tab.name}」を削除しますか？\n※中の曲データも消えます`)) {
         appData.tabs.splice(index, 1);
         if (appData.activeTabId === tab.id && appData.tabs.length > 0) {
           appData.activeTabId = appData.tabs[0].id;
         }
         saveData();
+        render();
       }
     };
     tabEl.appendChild(deleteBtn);
@@ -144,7 +126,6 @@ function render() {
         saveData();
       };
 
-      // --- 差し替えるコード（変更後） ---
       // 曲情報
       const infoDiv = document.createElement('div');
       infoDiv.className = 'song-info';
@@ -163,7 +144,23 @@ function render() {
         starSpan.onclick = () => {
           // 同じ星をタップした場合は0にリセット、それ以外はその星の数に変更
           song.rating = song.rating === i ? 0 : i;
+
+          // 設定がオンなら、他タブの同じ曲の星も同期する
+          const syncCb = document.getElementById('toggle-sync-rating');
+          const isSyncOn = syncCb ? syncCb.checked : (localStorage.getItem('syncRating') !== 'false');
+          
+          if (isSyncOn) {
+            appData.tabs.forEach(tab => {
+              tab.songs.forEach(s => {
+                if (s.artist === song.artist && s.title === song.title) {
+                  s.rating = song.rating;
+                }
+              });
+            });
+          }
+
           saveData();
+          render();
         };
         starDiv.appendChild(starSpan);
       }
@@ -173,20 +170,40 @@ function render() {
       const statusContainer = document.createElement('div');
       statusContainer.className = 'status-buttons';
 
+      // ステータス同期のための共通処理
+      const applyStatusSync = (targetSong) => {
+        const syncCb = document.getElementById('toggle-sync-status');
+        // チェックボックスが取得できない場合でも、保存された設定を使って確実に同期する
+        const isSyncOn = syncCb ? syncCb.checked : (localStorage.getItem('syncStatus') !== 'false');
+        
+        if (isSyncOn) {
+          appData.tabs.forEach(tab => {
+            tab.songs.forEach(s => {
+              // 歌手名と曲名が完全一致するものを探して書き換える
+              if (s.artist === targetSong.artist && s.title === targetSong.title) {
+                s.status = targetSong.status;
+              }
+            });
+          });
+        }
+        saveData();
+        render(); // 見た目をすぐに最新状態にする
+      };
+
       const okBtn = document.createElement('button');
       okBtn.textContent = 'OK';
       okBtn.className = `status-btn ${song.status === 'OK' ? 'status-ok' : 'status-inactive'}`;
       okBtn.onclick = () => {
-        song.status = song.status === 'OK' ? '未確認' : 'OK'; // もう一度押したら解除
-        saveData();
+        song.status = song.status === 'OK' ? '未確認' : 'OK';
+        applyStatusSync(song); // ← 同期処理を呼び出すように修正！
       };
 
       const ngBtn = document.createElement('button');
       ngBtn.textContent = 'NG';
       ngBtn.className = `status-btn ${song.status === 'NG' ? 'status-ng' : 'status-inactive'}`;
       ngBtn.onclick = () => {
-        song.status = song.status === 'NG' ? '未確認' : 'NG'; // もう一度押したら解除
-        saveData();
+        song.status = song.status === 'NG' ? '未確認' : 'NG';
+        applyStatusSync(song); // ← 同期処理を呼び出すように修正！
       };
 
       // 「音域NG」ボタン
@@ -195,7 +212,7 @@ function render() {
       rangeNgBtn.className = `status-btn ${song.status === '音域NG' ? 'status-range-ng' : 'status-inactive'}`;
       rangeNgBtn.onclick = () => {
         song.status = song.status === '音域NG' ? '未確認' : '音域NG'; 
-        saveData();
+        applyStatusSync(song); // ← 同期処理を呼び出すように修正！
       };
 
       statusContainer.appendChild(okBtn);
@@ -206,13 +223,13 @@ function render() {
       const deleteSongBtn = document.createElement('button');
       deleteSongBtn.textContent = '×';
       deleteSongBtn.className = 'song-delete-btn';
-      deleteSongBtn.onclick = () => {
-        if (confirm(`「${song.title}」をリストから削除しますか？`)) {
-          // 絞り込み時でも確実に正しい曲を消せるように、本当の順番を探してから削除する
+      deleteSongBtn.onclick = async () => {
+        if (await customConfirm(`「${song.title}」をリストから削除しますか？`)) {
           const originalIndex = activeTab.songs.indexOf(song);
           if (originalIndex !== -1) {
             activeTab.songs.splice(originalIndex, 1);
             saveData();
+            render();
           }
         }
       };
@@ -273,32 +290,19 @@ function render() {
           const clickedIdx = pitchOptions.findIndex(p => p.value === val);
           if (clickedIdx <= 0) return;
 
-          // 選択の解除ロジック 
+          // 1. まず現在の曲の音域を更新する
           if (song.lowPitch === val && song.highPitch === val) {
-            // ① 1音のみ選択時にタップした場合は、完全クリア
-            song.lowPitch = '';
-            song.highPitch = '';
-            saveData();
-            return;
+            song.lowPitch = ''; song.highPitch = '';
           } else if (song.lowPitch === val) {
-            // ② 範囲選択時に地低（左端）をタップした場合は、地低を解除（地高の1音選択に戻す）
             song.lowPitch = song.highPitch;
-            saveData();
-            return;
           } else if (song.highPitch === val) {
-            // ③ 範囲選択時に地高（右端）をタップした場合は、地高を解除（地低の1音選択に戻す）
             song.highPitch = song.lowPitch;
-            saveData();
-            return;
-          }
-
-          if (lowIdx <= 0 && highIdx <= 0) {
-            song.lowPitch = val; song.highPitch = val; // 初回は両方セット
+          } else if (lowIdx <= 0 && highIdx <= 0) {
+            song.lowPitch = val; song.highPitch = val;
           } else if (lowIdx > 0 && highIdx <= 0) {
             if (clickedIdx < lowIdx) { song.lowPitch = val; song.highPitch = pitchOptions[lowIdx].value; }
             else { song.highPitch = val; }
           } else {
-            // 既に範囲がある場合、タップした位置が近い方を更新する
             if (clickedIdx < lowIdx) song.lowPitch = val;
             else if (clickedIdx > highIdx) song.highPitch = val;
             else {
@@ -306,6 +310,18 @@ function render() {
               else song.highPitch = val;
             }
           }
+
+          // 2. 追加：他のタブにある「同じ歌手名・アニメ」かつ「同じ曲名」の曲すべてに、新しい音域をコピーして同期する
+          appData.tabs.forEach(tab => {
+            tab.songs.forEach(s => {
+              if (s.artist === song.artist && s.title === song.title) {
+                s.lowPitch = song.lowPitch;
+                s.highPitch = song.highPitch;
+              }
+            });
+          });
+
+          // 3. すべて同期してから保存して画面を更新
           saveData();
         };
 
@@ -328,8 +344,15 @@ function render() {
           }
           wKey.onclick = () => handleKeyClick(group.w);
 
+          // 先に白鍵だけを画面に配置する
+          kbd.appendChild(wKey);
+
           // 黒鍵（#）がある場合
           if (group.b) {
+            // 黒鍵を入れるための「幅0の透明な隙間」を作る
+            const bWrapper = document.createElement('div');
+            bWrapper.className = 'black-key-wrapper';
+
             const bKey = document.createElement('div');
             bKey.className = 'key-black';
             const bIdx = pitchOptions.findIndex(p => p.value === group.b);
@@ -339,12 +362,14 @@ function render() {
               if (pitchOptions[bIdx].colorClass) bKey.classList.add(pitchOptions[bIdx].colorClass);
             }
             bKey.onclick = (e) => {
-              e.stopPropagation(); // 白鍵のタップ判定をブロック
+              e.stopPropagation(); 
               handleKeyClick(group.b);
             };
-            wKey.appendChild(bKey);
+            
+            // 黒鍵を隙間の中に入れ、その隙間を白鍵のすぐ右隣に配置する
+            bWrapper.appendChild(bKey);
+            kbd.appendChild(bWrapper); 
           }
-          kbd.appendChild(wKey);
         });
 
         kbdWrapper.appendChild(kbd);
@@ -366,14 +391,47 @@ function render() {
 }
 
 // 曲の追加
-document.getElementById('add-song-btn').onclick = () => {
+document.getElementById('add-song-btn').onclick = async () => {
   const artist = artistInput.value.trim();
   const title = songInput.value.trim();
-  if (!artist || !title) return alert('歌手名と曲名を入力してください');
+  if (!artist || !title) {
+    await customAlert('歌手名（アニメなど）と曲名を入力してください');
+    return;
+  }
+
+  // 全タブを探して、既に同じ曲があれば音域と【評価（星）】データを引っ張ってくる
+  let existingLowPitch = '';
+  let existingHighPitch = '';
+  let existingRating = 0;
+  let existingStatus = '未確認';
+  appData.tabs.forEach(tab => {
+    tab.songs.forEach(s => {
+      if (s.artist === artist && s.title === title) {
+        if (s.lowPitch) existingLowPitch = s.lowPitch;
+        if (s.highPitch) existingHighPitch = s.highPitch;
+        if (s.rating) existingRating = s.rating; // 星の数も取得
+        if (s.status && s.status !== '未確認') existingStatus = s.status; //OK/NGなどを取得
+      }
+    });
+  });
+
+  // 設定で「星の同期オフ」になっていれば、星の引き継ぎはしない（0に戻す）
+  if (!document.getElementById('toggle-sync-rating').checked) {
+    existingRating = 0;
+  }
 
   const activeTab = getActiveTab();
-  // rating: 0 （初期の星の数）を追加
-  activeTab.songs.push({ artist, title, status: '未確認', sungToday: false, rating: 0 }); 
+  // 見つかった既存の音域と評価データを初期値としてセットして追加する
+  activeTab.songs.push({ 
+    artist, 
+    title, 
+    status: existingStatus, //取得したステータスをセットする
+    sungToday: false, 
+    rating: existingRating, //取得した星の数をセットする
+    lowPitch: existingLowPitch,
+    highPitch: existingHighPitch
+  });
+  
   artistInput.value = '';
   songInput.value = '';
   saveData();
@@ -412,6 +470,13 @@ document.getElementById('sort-check-btn').onclick = () => {
   saveData();
 };
 
+// すべての曲にチェックを入れる（オールチェック）
+document.getElementById('all-check-btn').onclick = () => {
+  const activeTab = getActiveTab();
+  activeTab.songs.forEach(song => song.sungToday = true);
+  saveData();
+};
+
 // 歌唱済みチェックのクリア
 document.getElementById('clear-checks-btn').onclick = () => {
   const activeTab = getActiveTab();
@@ -419,26 +484,16 @@ document.getElementById('clear-checks-btn').onclick = () => {
   saveData();
 };
 
-// タブの作成（独自の確認ダイアログを使用）
-document.getElementById('add-tab-btn').onclick = () => {
-  const tabName = prompt('新しいカラオケ会（タブ）の名前を入力してください:');
+// 新規タブの追加（常に空のタブを作成）
+document.getElementById('add-tab-btn').onclick = async () => {
+  const tabName = await customPrompt('新しいタブの名前を入力してください');
   if (!tabName) return; 
 
-  // 独自の確認ダイアログを表示する
-  const modal = document.getElementById('custom-confirm');
-  modal.style.display = 'flex';
-
-  // 「はい」ボタンが押された時の処理
-  document.getElementById('modal-yes').onclick = () => {
-    modal.style.display = 'none'; // 画面を閉じる
-    createNewTab(tabName, true);  // コピーして作成
-  };
-
-  // 「いいえ」ボタンが押された時の処理
-  document.getElementById('modal-no').onclick = () => {
-    modal.style.display = 'none'; // 画面を閉じる
-    createNewTab(tabName, false); // 空で作成
-  };
+  const newTabId = Date.now();
+  appData.tabs.push({ id: newTabId, name: tabName, songs: [] });
+  appData.activeTabId = newTabId; 
+  saveData();
+  render(); 
 };
 
 // 新しいタブをデータに登録する処理（コードを分かりやすく整理）
@@ -606,3 +661,173 @@ passwordSubmitBtn.onclick = attemptLogin;
 passwordInput.addEventListener('keypress', (e) => {
   if (e.key === 'Enter') attemptLogin();
 });
+
+// --- 一括コピー・一括削除機能 ---
+// 1. 「＋」ボタン（他タブへ一括送信）の処理
+document.getElementById('bulk-copy-btn').onclick = async () => {
+  const activeTab = getActiveTab();
+  const selectedSongs = activeTab.songs.filter(s => s.sungToday);
+  
+  if (selectedSongs.length === 0) {
+    await customAlert('チェックされた曲がありません。');
+    return;
+  }
+
+  const listEl = document.getElementById('copy-tab-list');
+  listEl.innerHTML = ''; 
+  
+  let hasOtherTabs = false;
+  appData.tabs.forEach(tab => {
+    if (tab.id !== activeTab.id) {
+      const label = document.createElement('label');
+      label.style.display = 'flex';
+      label.style.alignItems = 'center';
+      label.style.gap = '10px';
+      label.style.cursor = 'pointer';
+
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.value = tab.id;
+      cb.className = 'copy-target-cb'; 
+      cb.style.width = '20px';
+      cb.style.height = '20px';
+
+      const span = document.createElement('span');
+      span.textContent = tab.name;
+
+      label.appendChild(cb);
+      label.appendChild(span);
+      listEl.appendChild(label);
+      hasOtherTabs = true;
+    }
+  });
+
+  if (!hasOtherTabs) {
+    await customAlert('送信先の他のタブがありません。先に「＋ 新規タブ」を作成してください。');
+    return;
+  }
+
+  const modal = document.getElementById('copy-modal');
+  modal.style.display = 'flex';
+
+  document.getElementById('copy-modal-ok').onclick = async () => {
+    const checkedBoxes = Array.from(document.querySelectorAll('.copy-target-cb:checked'));
+    if (checkedBoxes.length === 0) {
+      await customAlert('送信先のタブを1つ以上選択してください。');
+      return;
+    }
+
+    let totalAddedCount = 0;
+    let targetTabNames = [];
+
+    checkedBoxes.forEach(cb => {
+      const targetTabId = parseInt(cb.value, 10);
+      const targetTab = appData.tabs.find(t => t.id === targetTabId);
+
+      if (targetTab) {
+        targetTabNames.push(targetTab.name);
+        selectedSongs.forEach(song => {
+          const exists = targetTab.songs.some(s => s.artist === song.artist && s.title === song.title);
+          if (!exists) {
+            const newSong = JSON.parse(JSON.stringify(song)); 
+            newSong.sungToday = false; 
+            targetTab.songs.push(newSong);
+            totalAddedCount++;
+          }
+        });
+      }
+    });
+    
+    activeTab.songs.forEach(s => s.sungToday = false);
+    saveData();
+    render();
+    
+    modal.style.display = 'none';
+    await customAlert(`選択したタブ（${targetTabNames.join(', ')}）に計 ${totalAddedCount}曲 送信しました！\n（※既にあった曲はスキップされました）`);
+  };
+
+  document.getElementById('copy-modal-cancel').onclick = () => {
+    modal.style.display = 'none';
+  };
+};
+
+// 2. 「🗑️」ボタン（一括削除）の処理
+document.getElementById('bulk-delete-btn').onclick = async () => {
+  const activeTab = getActiveTab();
+  const selectedSongs = activeTab.songs.filter(s => s.sungToday);
+  
+  if (selectedSongs.length === 0) {
+    await customAlert('チェックされた曲がありません。');
+    return;
+  }
+
+  if (await customConfirm(`チェックされている ${selectedSongs.length} 曲を一括削除しますか？\n（この操作は元に戻せません）`)) {
+    activeTab.songs = activeTab.songs.filter(s => !s.sungToday);
+    saveData();
+    render();
+  }
+};
+
+// --- お気に入り度同期設定の初期化と保存 ---
+const syncRatingCb = document.getElementById('toggle-sync-rating');
+// 初期値は「オン（true）」に設定。ユーザーがオフにした記録がなければオンになる。
+syncRatingCb.checked = localStorage.getItem('syncRating') !== 'false';
+
+// チェックを付け外した時に状態を保存する
+syncRatingCb.onchange = () => {
+  localStorage.setItem('syncRating', syncRatingCb.checked);
+};
+
+// --- ステータス同期設定の初期化と保存 ---
+const syncStatusCb = document.getElementById('toggle-sync-status');
+// 初期値は「オン（true）」。ユーザーがオフにした記録がなければオンになる。
+syncStatusCb.checked = localStorage.getItem('syncStatus') !== 'false';
+
+syncStatusCb.onchange = () => {
+  localStorage.setItem('syncStatus', syncStatusCb.checked);
+};
+
+// --- 万能ポップアップシステム ---
+const showCustomModal = (type, message, defaultValue = '') => {
+  return new Promise((resolve) => {
+    const modal = document.getElementById('custom-modal');
+    const msgEl = document.getElementById('custom-modal-message');
+    const inputEl = document.getElementById('custom-modal-input');
+    const okBtn = document.getElementById('custom-modal-ok');
+    const cancelBtn = document.getElementById('custom-modal-cancel');
+
+    msgEl.textContent = message;
+    
+    // イベントが重複しないようにボタンをリセット
+    const newOkBtn = okBtn.cloneNode(true);
+    const newCancelBtn = cancelBtn.cloneNode(true);
+    okBtn.parentNode.replaceChild(newOkBtn, okBtn);
+    cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+
+    if (type === 'alert') {
+      inputEl.style.display = 'none';
+      newCancelBtn.style.display = 'none';
+      newOkBtn.onclick = () => { modal.style.display = 'none'; resolve(true); };
+    } else if (type === 'confirm') {
+      inputEl.style.display = 'none';
+      newCancelBtn.style.display = 'block';
+      newOkBtn.onclick = () => { modal.style.display = 'none'; resolve(true); };
+      newCancelBtn.onclick = () => { modal.style.display = 'none'; resolve(false); };
+    } else if (type === 'prompt') {
+      inputEl.style.display = 'block';
+      inputEl.value = defaultValue;
+      newCancelBtn.style.display = 'block';
+      newOkBtn.onclick = () => { modal.style.display = 'none'; resolve(inputEl.value); };
+      newCancelBtn.onclick = () => { modal.style.display = 'none'; resolve(null); };
+      inputEl.onkeypress = (e) => { if (e.key === 'Enter') newOkBtn.click(); };
+    }
+
+    modal.style.display = 'flex';
+    if (type === 'prompt') inputEl.focus();
+  });
+};
+
+// 呼び出し用の短い名前を用意
+const customAlert = (msg) => showCustomModal('alert', msg);
+const customConfirm = (msg) => showCustomModal('confirm', msg);
+const customPrompt = (msg, def = '') => showCustomModal('prompt', msg, def);
