@@ -399,11 +399,21 @@ function render() {
 }
 
 // 曲の追加
+//document.getElementById('add-song-btn').onclick = async () => {
+  //const artist = artistInput.value.trim();
+  //const title = songInput.value.trim();
+  //if (!artist || !title) {
+    //await customAlert('歌手名と曲名を入力してください');
+    //return;
+  //}
 document.getElementById('add-song-btn').onclick = async () => {
-  const artist = artistInput.value.trim();
+  // 歌手名が空欄の場合は、見た目が崩れないように「-」という文字を入れる
+  const artist = artistInput.value.trim() || '-'; 
   const title = songInput.value.trim();
-  if (!artist || !title) {
-    await customAlert('歌手名（アニメなど）と曲名を入力してください');
+  
+  // ▼ 変更：「曲名」さえ入力されていればOKにする
+  if (!title) {
+    await customAlert('歌手名と曲名を入力してください');
     return;
   }
 
@@ -430,7 +440,7 @@ document.getElementById('add-song-btn').onclick = async () => {
 
   const activeTab = getActiveTab();
   // 見つかった既存の音域と評価データを初期値としてセットして追加する
-  activeTab.songs.push({ 
+  activeTab.songs.unshift({ 
     artist, 
     title, 
     status: existingStatus, //取得したステータスをセットする
