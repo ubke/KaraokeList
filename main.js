@@ -282,11 +282,6 @@ function render() {
         const kbdWrapper = document.createElement('div');
         kbdWrapper.className = 'keyboard-wrapper';
 
-        // スクロール位置を常に記憶しておく
-        kbdWrapper.addEventListener('scroll', () => {
-          song.kbdScroll = kbdWrapper.scrollLeft;
-        });
-
         const kbd = document.createElement('div');
         kbd.className = 'piano-keyboard';
 
@@ -319,7 +314,7 @@ function render() {
             }
           }
 
-          // 2. 追加：他のタブにある「同じ歌手名・アニメ」かつ「同じ曲名」の曲すべてに、新しい音域をコピーして同期する
+          // 2. 他のタブにある「同じ歌手名・アニメ」かつ「同じ曲名」の曲すべてに、新しい音域をコピーして同期する
           appData.tabs.forEach(tab => {
             tab.songs.forEach(s => {
               if (s.artist === song.artist && s.title === song.title) {
@@ -329,6 +324,9 @@ function render() {
             });
           });
 
+          // 鍵盤をタップした直後はジャンプしないよう、現在のスクロール位置を一時保存する
+          song._tempScroll = kbdWrapper.scrollLeft;
+
           // 3. すべて同期してから保存して画面を更新
           saveData();
         };
@@ -337,6 +335,7 @@ function render() {
         keyboardLayout.forEach(group => {
           const wKey = document.createElement('div');
           wKey.className = 'key-white';
+          wKey.dataset.pitch = group.w; // スクロール計算用の目印
           const wIdx = pitchOptions.findIndex(p => p.value === group.w);
           
           // 白鍵に音名（lowEなど）を縦書きで表示する
@@ -363,6 +362,7 @@ function render() {
 
             const bKey = document.createElement('div');
             bKey.className = 'key-black';
+            bKey.dataset.pitch = group.b; // スクロール計算用の目印
             const bIdx = pitchOptions.findIndex(p => p.value === group.b);
             
             // 選択範囲に含まれていれば色を塗る
@@ -384,12 +384,32 @@ function render() {
         vocalContainer.appendChild(kbdWrapper);
         li.appendChild(vocalContainer); 
 
-        // 描画された直後にスクロール位置を復元する
-        requestAnimationFrame(() => {
-          if (song.kbdScroll !== undefined) {
-            kbdWrapper.scrollLeft = song.kbdScroll;
+        // 描画された直後にスクロール位置を自動調整する
+        setTimeout(() => { // 早すぎて位置が取れないバグを防ぐため、ごくわずかに待つ(setTimeout)
+          if (song._tempScroll !== undefined) {
+            // ① 鍵盤操作の直後は元の位置をキープ
+            kbdWrapper.scrollLeft = song._tempScroll;
+            delete song._tempScroll; 
+          } else if (song.lowPitch) {
+            // ② 地低（lowPitch）の「1つ前の白鍵」を正確に探して表示する
+            // まず、lowPitch が属しているグループの場所（インデックス番号）を探す
+            const layoutIdx = keyboardLayout.findIndex(g => g.w === song.lowPitch || g.b === song.lowPitch);
+            
+            if (layoutIdx !== -1) {
+              // 1つ前の白鍵の場所（一番左端のキーの場合は0のままにする）
+              const prevIdx = Math.max(0, layoutIdx - 1);
+              const prevPitch = keyboardLayout[prevIdx].w; // 1つ前の白鍵の音名
+              
+              const targetKey = kbd.querySelector(`[data-pitch="${prevPitch}"]`);
+              if (targetKey) {
+                // ブラウザの描画が完了した状態での「確実な相対位置」を計算してピタッとスクロールする
+                const kbdRect = kbd.getBoundingClientRect();
+                const keyRect = targetKey.getBoundingClientRect();
+                kbdWrapper.scrollLeft = keyRect.left - kbdRect.left;
+              }
+            }
           }
-        });
+        }, 10);
       }
       // ▲▲▲ 音域ブロックここまで ▲▲▲
 
@@ -462,28 +482,28 @@ document.getElementById('sort-btn').onclick = () => {
   saveData();
 };
 
-// お気に入りでソート機能 (星が多い順 → 星が同じなら歌手名順)
+// お気に入りでソート機能
 document.getElementById('sort-star-btn').onclick = () => {
   const activeTab = getActiveTab();
   activeTab.songs.sort((a, b) => {
     const ratingA = a.rating || 0;
     const ratingB = b.rating || 0;
-    if (ratingB !== ratingA) {
-      return ratingB - ratingA; // 星が多いものを上に
-    }
-    return a.artist.localeCompare(b.artist, 'ja'); // 星が同じ場合は歌手名順
+    // 星の数だけで比較。同じ星の数なら「直前の並び順」をそのままキープする
+    return ratingB - ratingA; 
   });
   saveData();
 };
 
-// チェック状況でソート機能 (未チェックを上へ → チェック状況が同じなら歌手名順)
+// チェック状況でソート機能
 document.getElementById('sort-check-btn').onclick = () => {
   const activeTab = getActiveTab();
   activeTab.songs.sort((a, b) => {
-    if (a.sungToday === b.sungToday) {
-      return a.artist.localeCompare(b.artist, 'ja'); // チェック状態が同じなら歌手名で整理
+    if (a.sungToday !== b.sungToday) {
+      // 未チェックを上、チェック済みを下にする
+      return a.sungToday ? 1 : -1; 
     }
-    return a.sungToday ? 1 : -1; // false（未チェック）を上（先）にする
+    // チェック状態が同じなら「直前の並び順」をそのままキープする
+    return 0; 
   });
   saveData();
 };
