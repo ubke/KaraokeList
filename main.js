@@ -28,7 +28,8 @@ const keyboardLayout = [
   { w: "hiF", b: "hiF#" }, { w: "hiG", b: "hiG#" }, { w: "hihiA", b: "hihiA#" }, { w: "hihiB" }
 ];
 
-// 音域NG非表示フラグ
+// NG / 音域NG非表示フラグ
+let hideNg = false;
 let hideRangeNg = false;
 
 // アプリの状態を管理するデータ構造
@@ -114,6 +115,11 @@ function render() {
     activeTab.songs.forEach((song, index) => {
       // 検索ワードが入力されており、かつ歌手名に含まれていなければスキップ（描画しない）
       if (filterText && !song.artist.toLowerCase().includes(filterText)) {
+        return;
+      }
+
+      // NG非表示がONの場合、NGの曲をスキップ
+      if (hideNg && song.status === 'NG') {
         return;
       }
 
@@ -521,6 +527,14 @@ document.getElementById('all-check-btn').onclick = () => {
   const activeTab = getActiveTab();
   activeTab.songs.forEach(song => song.sungToday = true);
   saveData();
+};
+
+// NG非表示の切り替え
+document.getElementById('hide-ng-btn').onclick = () => {
+  hideNg = !hideNg;
+  const btn = document.getElementById('hide-ng-btn');
+  btn.className = hideNg ? 'btn-ng-active' : 'btn-secondary';
+  render();
 };
 
 // 音域NG非表示の切り替え
