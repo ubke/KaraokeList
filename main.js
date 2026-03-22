@@ -28,6 +28,9 @@ const keyboardLayout = [
   { w: "hiF", b: "hiF#" }, { w: "hiG", b: "hiG#" }, { w: "hihiA", b: "hihiA#" }, { w: "hihiB" }
 ];
 
+// 音域NG非表示フラグ
+let hideRangeNg = false;
+
 // アプリの状態を管理するデータ構造
 let appData = JSON.parse(localStorage.getItem('karaokeApp')) || {
   activeTabId: 1,
@@ -111,6 +114,11 @@ function render() {
     activeTab.songs.forEach((song, index) => {
       // 検索ワードが入力されており、かつ歌手名に含まれていなければスキップ（描画しない）
       if (filterText && !song.artist.toLowerCase().includes(filterText)) {
+        return;
+      }
+
+      // 音域NG非表示がONの場合、音域NGの曲をスキップ
+      if (hideRangeNg && song.status === '音域NG') {
         return;
       }
 
@@ -513,6 +521,14 @@ document.getElementById('all-check-btn').onclick = () => {
   const activeTab = getActiveTab();
   activeTab.songs.forEach(song => song.sungToday = true);
   saveData();
+};
+
+// 音域NG非表示の切り替え
+document.getElementById('hide-range-ng-btn').onclick = () => {
+  hideRangeNg = !hideRangeNg;
+  const btn = document.getElementById('hide-range-ng-btn');
+  btn.className = hideRangeNg ? 'btn-range-ng-active' : 'btn-secondary';
+  render();
 };
 
 // 歌唱済みチェックのクリア
